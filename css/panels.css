@@ -145,3 +145,11 @@ button.card:hover,.card:focus-within{transform:translateY(-4px) rotate(-1deg);bo
   .crt,.crt::after,.led,.empty-hint.show{animation:none!important}
   body[data-shell="rainbow"] .console{animation:none}
 }
+
+/* phones: the tool strip scrolls inside itself; the page never scrolls sideways */
+@media (max-width: 720px) { .tools { min-width: 0; max-width: 100%; } .deck, .console, main { min-width: 0; max-width: 100vw; } }
+html, body { overflow-x: hidden; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+
+/* footer credit links: 44px touch targets on every device */
+footer a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .3em; }
