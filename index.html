@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PixelPress — pocket pixel-art studio &amp; animator</title>
+<meta name="description" content="PixelPress is a free, in-browser pixel-art studio and animator: layers, onion skin, palettes, mirror and dither brushes, PNG, sprite-sheet and GIF export. Every link is the save file.">
+<meta property="og:title" content="PixelPress — pocket pixel-art studio &amp; animator">
+<meta property="og:description" content="Draw and animate pixel art in a retro CRT handheld. Your share link IS the save file.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kumarnikhildeveloperaccount.github.io/pixelpress/">
+<meta name="theme-color" content="#2a1d4d">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/console.css">
+<link rel="stylesheet" href="css/panels.css">
+</head>
+<body data-shell="grape">
+<a class="skip" href="#stage">Skip to canvas</a>
+
+<!-- Boot screen -->
+<div id="bootScreen" class="boot" role="dialog" aria-label="Starting PixelPress" aria-live="polite">
+  <div class="boot-inner">
+    <canvas id="bootLogo" width="200" height="40" aria-hidden="true"></canvas>
+    <p class="boot-sub">16-BIT COLOUR · CHIPTUNE STEREO</p>
+    <p class="boot-press" id="bootPress">PRESS START</p>
+    <button class="boot-skip" id="bootSkip" type="button">Start ▶</button>
+  </div>
+</div>
+
+<header class="topbar">
+  <button class="logo" id="logoBtn" type="button" aria-label="PixelPress home (try clicking a few times)">
+    <canvas id="logoCanvas" width="132" height="24" aria-hidden="true"></canvas>
+  </button>
+  <label class="title-wrap" for="titleInput">
+    <span class="sr">Artwork title</span>
+    <input id="titleInput" class="title-input" type="text" maxlength="40" value="Untitled" spellcheck="false" autocomplete="off">
+  </label>
+  <div class="link-meter" id="linkMeter" title="Size of your share link — the link is the save file">
+    <span class="lm-bar"><span id="linkMeterFill"></span></span>
+    <span id="linkMeterText">0 B</span>
+  </div>
+  <button class="menu-btn" id="btnMenu" type="button" aria-expanded="false" aria-controls="nav" aria-label="Open menu">☰</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <button type="button" class="nbtn" id="btnNew">New</button>
+    <button type="button" class="nbtn" id="btnGallery">Gallery</button>
+    <button type="button" class="nbtn accent" id="btnShare">Share link</button>
+    <button type="button" class="nbtn" id="btnExport">Export</button>
+    <button type="button" class="nbtn" id="btnAbout">Manual</button>
+    <label class="nsel"><span class="sr">Console shell</span>
+      <select id="selShell" aria-label="Console shell theme">
+        <option value="grape">Grape Pocket</option>
+        <option value="pea">Pea Brick</option>
+        <option value="atomic">Atomic Clear</option>
+        <option value="night">Night Arcade</option>
+      </select>
+    </label>
+    <button type="button" class="nbtn icon" id="btnCrt" aria-pressed="true" title="CRT scanlines">CRT</button>
+    <button type="button" class="nbtn icon" id="btnSound" aria-pressed="false" title="Chiptune sound effects">♪ Off</button>
+  </nav>
+</header>
+
+<main class="console" id="console">
+  <!-- tool rail -->
+  <section class="tools" id="toolRail" aria-label="Drawing tools">
+    <div class="tool-group" role="toolbar" aria-label="Tools">
+      <button type="button" class="tbtn" data-tool="pencil" data-icon="pencil" aria-label="Pencil (B)" title="Pencil (B)"></button>
+      <button type="button" class="tbtn" data-tool="eraser" data-icon="eraser" aria-label="Eraser (E)" title="Eraser (E)"></button>
+      <button type="button" class="tbtn" data-tool="fill" data-icon="fill" aria-label="Fill bucket (G)" title="Fill bucket (G)"></button>
+      <button type="button" class="tbtn" data-tool="line" data-icon="line" aria-label="Line (L)" title="Line (L) — Shift snaps 45°"></button>
+      <button type="button" class="tbtn" data-tool="rect" data-icon="rect" aria-label="Rectangle (R)" title="Rectangle (R) — Shift = square"></button>
+      <button type="button" class="tbtn" data-tool="circle" data-icon="circle" aria-label="Ellipse (C)" title="Ellipse (C) — Shift = circle"></button>
+      <button type="button" class="tbtn" data-tool="dither" data-icon="dither" aria-label="Dither brush (D)" title="Dither brush (D) — checkerboard of primary &amp; secondary"></button>
+      <button type="button" class="tbtn" data-tool="picker" data-icon="picker" aria-label="Colour picker (I)" title="Colour picker (I)"></button>
+      <button type="button" class="tbtn" data-tool="move" data-icon="move" aria-label="Move layer pixels (M)" title="Move layer pixels (M)"></button>
+      <button type="button" class="tbtn" data-tool="hand" data-icon="hand" aria-label="Pan (H, or hold Space)" title="Pan (H / hold Space)"></button>
+    </div>
+    <div class="tool-group opts" aria-label="Tool options">
+      <button type="button" class="tbtn tog" id="mirrorX" data-icon="mirror" aria-pressed="false" aria-label="Mirror left-right (V)" title="Mirror left↔right (V)"></button>
+      <button type="button" class="tbtn tog rot" id="mirrorY" data-icon="mirror" aria-pressed="false" aria-label="Mirror top-bottom (Shift+V)" title="Mirror top↕bottom (Shift+V)"></button>
+      <button type="button" class="tbtn tog" id="shapeFill" data-icon="filled" aria-pressed="false" aria-label="Filled shapes (F)" title="Filled shapes (F)"></button>
+      <div class="size-box" title="Brush size ( [ and ] )">
+        <button type="button" class="mini" id="sizeDown" aria-label="Smaller brush">−</button>
+        <output id="sizeVal" aria-live="polite">1</output>
+        <button type="button" class="mini" id="sizeUp" aria-label="Bigger brush">+</button>
+      </div>
+      <button type="button" class="tbtn" id="undoBtn" data-icon="undo" aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)"></button>
+      <button type="button" class="tbtn" id="redoBtn" data-icon="redo" aria-label="Redo (Ctrl+Shift+Z)" title="Redo (Ctrl+Shift+Z / Ctrl+Y)"></button>
+    </div>
+  </section>
+
+  <!-- screen -->
+  <section class="screen-wrap" aria-label="Canvas">
+    <div class="bezel">
+      <div class="bezel-top">
+        <span class="led" id="powerLed" aria-hidden="true"></span><span class="bezel-label">POWER</span>
+        <span class="bezel-brand">PIXELPRESS <em>CANVAS MATRIX</em></span>
+      </div>
+      <div class="stage" id="stage" tabindex="0" aria-label="Pixel canvas. Use the tools to draw; arrow keys pan.">
+        <canvas id="view" aria-hidden="true"></canvas>
+        <div class="crt" aria-hidden="true"></div>
+        <div class="empty-hint" id="emptyHint">Blank canvas. Infinite possibility.<br>Slightly fewer if you only use one colour.</div>
+      </div>
+      <div class="screen-bar">
+        <span id="hud" class="hud" aria-live="off">0,0 · 32×32 · 8×</span>
+        <div class="zoom-ctl">
+          <button type="button" class="mini" id="zoomOut" aria-label="Zoom out (−)">−</button>
+          <button type="button" class="mini wide" id="zoomFit" aria-label="Fit to screen (0)">Fit</button>
+          <button type="button" class="mini" id="zoomIn" aria-label="Zoom in (+)">+</button>
+          <button type="button" class="mini wide tog" id="gridToggle" aria-pressed="true" aria-label="Pixel grid (K)">Grid</button>
+          <button type="button" class="mini wide tog" id="onionToggle" aria-pressed="true" aria-label="Onion skin (O)">Onion</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- side panels: palette + layers -->
+  <aside class="side" aria-label="Palette and layers">
+    <section class="panel" aria-labelledby="palHead">
+      <div class="panel-head">
+        <h2 id="palHead">Palette</h2>
+        <label class="sr" for="palSelect">Palette preset</label>
+        <select id="palSelect"></select>
+      </div>
+      <div class="slots">
+        <button type="button" class="slot active" id="slotPrimary" aria-pressed="true" aria-label="Primary colour slot"><span class="chip" id="chipPrimary"></span><b>A</b></button>
+        <button type="button" class="mini" id="swapColors" aria-label="Swap primary and secondary (X)" title="Swap (X)">⇄</button>
+        <button type="button" class="slot" id="slotSecondary" aria-pressed="false" aria-label="Secondary colour slot"><span class="chip" id="chipSecondary"></span><b>B</b></button>
+        <span class="hexout" id="hexOut">#000000</span>
+      </div>
+      <div class="swatches" id="palSwatches" role="listbox" aria-label="Palette colours"></div>
+      <div class="pal-tools">
+        <button type="button" class="mini wide" id="palEdit" aria-label="Edit primary colour">Edit</button>
+        <button type="button" class="mini wide" id="palAdd" aria-label="Add a colour">+ Colour</button>
+        <button type="button" class="mini wide" id="palRemove" aria-label="Remove primary colour">− Colour</button>
+        <label class="chk"><input type="checkbox" id="palKeep"> Palette swap</label>
+        <input type="color" id="palColorInput" class="sr" aria-label="Colour picker" tabindex="-1">
+      </div>
+    </section>
+    <section class="panel layers-panel" aria-labelledby="layHead">
+      <div class="panel-head">
+        <h2 id="layHead">Layers</h2>
+        <div class="row-btns">
+          <button type="button" class="mini" id="layerAdd" aria-label="Add layer" title="Add layer">+</button>
+          <button type="button" class="mini" id="layerDup" aria-label="Duplicate layer" title="Duplicate layer">⧉</button>
+          <button type="button" class="mini" id="layerUp" aria-label="Move layer up" title="Move up">▲</button>
+          <button type="button" class="mini" id="layerDown" aria-label="Move layer down" title="Move down">▼</button>
+          <button type="button" class="mini danger" id="layerDel" aria-label="Delete layer" title="Delete layer">✕</button>
+        </div>
+      </div>
+      <ul class="layer-list" id="layerList" aria-label="Layer list"></ul>
+    </section>
+  </aside>
+
+  <!-- timeline -->
+  <section class="timeline" aria-labelledby="timeHead">
+    <div class="tl-head">
+      <h2 id="timeHead">Frames</h2>
+      <button type="button" class="mini wide accent" id="playBtn" aria-pressed="false" aria-label="Play animation (P)">▶ Play</button>
+      <label class="fps">FPS <input type="range" id="fpsInput" min="1" max="30" value="8" aria-label="Frames per second"><output id="fpsVal">8</output></label>
+      <div class="row-btns">
+        <button type="button" class="mini" id="frameAdd" aria-label="Add blank frame" title="Add frame">+</button>
+        <button type="button" class="mini" id="frameDup" aria-label="Duplicate frame" title="Duplicate frame">⧉</button>
+        <button type="button" class="mini" id="frameLeft" aria-label="Move frame left" title="Move left">◀</button>
+        <button type="button" class="mini" id="frameRight" aria-label="Move frame right" title="Move right">▶</button>
+        <button type="button" class="mini danger" id="frameDel" aria-label="Delete frame" title="Delete frame">✕</button>
+      </div>
+    </div>
+    <ol class="frame-list" id="frameList" aria-label="Animation frames"></ol>
+  </section>
+
+  <!-- deck: d-pad + buttons + live preview -->
+  <section class="deck" aria-label="Console controls">
+    <div class="dpad" id="dpad" role="group" aria-label="Pan the canvas">
+      <button type="button" class="dp up" data-dir="up" aria-label="Pan up">▲</button>
+      <button type="button" class="dp left" data-dir="left" aria-label="Pan left">◀</button>
+      <span class="dp-center" aria-hidden="true"></span>
+      <button type="button" class="dp right" data-dir="right" aria-label="Pan right">▶</button>
+      <button type="button" class="dp down" data-dir="down" aria-label="Pan down">▼</button>
+    </div>
+    <div class="preview-box">
+      <canvas id="preview" width="96" height="96" aria-label="Live animation preview"></canvas>
+      <div class="pills">
+        <button type="button" class="pill" id="btnSelect" aria-label="Select: cycle tools">SELECT</button>
+        <button type="button" class="pill" id="btnStart" aria-label="Start: play or pause">START</button>
+      </div>
+    </div>
+    <div class="ab">
+      <button type="button" class="round b" id="btnB" aria-label="B: undo">B</button>
+      <button type="button" class="round a" id="btnA" aria-label="A: redo">A</button>
+    </div>
+    <div class="grille" aria-hidden="true"></div>
+  </section>
+</main>
+
+<!-- About / credits -->
+<footer class="footer" id="about">
+  <div class="foot-card">
+    <h2>About / Made by</h2>
+    <p>PixelPress is a pocket pixel-art studio that lives entirely in your browser. No accounts, no servers, no cloud — your share link literally contains your artwork, run-length-encoded and squeezed into base64url. Bookmark it and you've saved. Send it and you've shared. Lose it and… well, there's also the local gallery.</p>
+    <p class="credit">Designed &amp; built by <strong>Kumar Nikhil</strong></p>
+    <p class="links">
+      <a href="https://kumarnikhildeveloperaccount.github.io/" target="_blank" rel="noopener">Portfolio</a>
+      <a href="https://www.linkedin.com/in/kumar-nikhil-1000a9192/" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:nkashyapnikhilnk@gmail.com">Email</a>
+      <a class="more" href="https://kumarnikhildeveloperaccount.github.io/" target="_blank" rel="noopener">More projects by Kumar Nikhil →</a>
+    </p>
+    <p class="grat">With gratitude to God — Om Namah Paarvati Pateh, Har Har Mahadev. May God bless you and everyone.</p>
+    <p class="tiny">No cartridges were blown into during development. Okay, one.</p>
+  </div>
+</footer>
+
+<!-- Dialogs -->
+<dialog id="dlgNew" class="dlg" aria-labelledby="dlgNewTitle">
+  <form method="dialog" class="dlg-body" id="newForm">
+    <h2 id="dlgNewTitle">Insert new cartridge</h2>
+    <label>Title <input id="newTitle" type="text" maxlength="40" value="Untitled"></label>
+    <div class="two">
+      <label>Width <select id="newW"></select></label>
+      <label>Height <select id="newH"></select></label>
+    </div>
+    <label>Palette <select id="newPal"></select></label>
+    <p class="hint">Bigger canvases make longer links. 32×32 is the sweet spot; 128×128 is the "I have a lot of free time" spot.</p>
+    <div class="dlg-actions">
+      <button type="button" class="nbtn" id="newCancel">Cancel</button>
+      <button type="button" class="nbtn accent" id="newGo">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgShare" class="dlg" aria-labelledby="dlgShareTitle">
+  <div class="dlg-body">
+    <h2 id="dlgShareTitle">Your link is your save file</h2>
+    <p class="hint">Everything — pixels, layers, frames, palette, title — is packed into this URL. Anyone who opens it gets an exact copy.</p>
+    <label for="shareUrl" class="sr">Share link</label>
+    <textarea id="shareUrl" rows="4" readonly></textarea>
+    <p class="hint" id="shareSize"></p>
+    <div class="dlg-actions">
+      <button type="button" class="nbtn" id="shareClose">Close</button>
+      <button type="button" class="nbtn" id="shareNative">Share…</button>
+      <button type="button" class="nbtn" id="shareSaveGallery">Save to gallery</button>
+      <button type="button" class="nbtn accent" id="shareCopy">Copy link</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgExport" class="dlg" aria-labelledby="dlgExportTitle">
+  <div class="dlg-body">
+    <h2 id="dlgExportTitle">Export</h2>
+    <div class="two">
+      <label>Scale <select id="expScale">
+        <option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
+        <option value="8" selected>8×</option><option value="16">16×</option><option value="32">32×</option>
+      </select></label>
+      <label>Background <select id="expBg">
+        <option value="transparent">Transparent</option>
+        <option value="secondary">Secondary colour (B)</option>
+        <option value="white">White</option>
+        <option value="black">Black</option>
+      </select></label>
+    </div>
+    <label>Sprite-sheet columns <input id="expCols" type="number" min="1" max="64" value="8"></label>
+    <p class="hint" id="expInfo"></p>
+    <div class="exp-grid">
+      <button type="button" class="nbtn" id="expPng">PNG · current frame</button>
+      <button type="button" class="nbtn" id="expSheet">PNG · sprite sheet</button>
+      <button type="button" class="nbtn accent" id="expGif">Animated GIF</button>
+      <button type="button" class="nbtn" id="expJson">Project file (.json)</button>
+    </div>
+    <label class="import-lbl">Open project file <input type="file" id="expImport" accept=".json,application/json"></label>
+    <div class="dlg-actions"><button type="button" class="nbtn" id="expClose">Close</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlgGallery" class="dlg wide" aria-labelledby="dlgGalTitle">
+  <div class="dlg-body">
+    <h2 id="dlgGalTitle">Cartridge gallery</h2>
+    <div class="tabs" role="tablist" aria-label="Gallery sections">
+      <button type="button" role="tab" class="tab" id="tabStarter" aria-selected="true" aria-controls="galStarter">Starter sprites</button>
+      <button type="button" role="tab" class="tab" id="tabMine" aria-selected="false" aria-controls="galMine">My saves</button>
+    </div>
+    <div class="gal-grid" id="galStarter" role="tabpanel" aria-labelledby="tabStarter"></div>
+    <div class="gal-grid" id="galMine" role="tabpanel" aria-labelledby="tabMine" hidden></div>
+    <div class="dlg-actions">
+      <label class="nbtn file-btn">Import gallery <input type="file" id="galImport" accept=".json,application/json"></label>
+      <button type="button" class="nbtn" id="galExportAll">Export gallery</button>
+      <button type="button" class="nbtn accent" id="galSaveCurrent">Save current</button>
+      <button type="button" class="nbtn" id="galClose">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgAbout" class="dlg wide" aria-labelledby="dlgAboutTitle">
+  <div class="dlg-body manual">
+    <h2 id="dlgAboutTitle">Instruction booklet</h2>
+    <p>Welcome, player one. PixelPress is a pixel-art studio disguised as a handheld console. It saves by turning your art into a link.</p>
+    <h3>Controls</h3>
+    <dl class="keys">
+      <dt>B / E / G</dt><dd>Pencil, eraser, fill</dd>
+      <dt>L / R / C</dt><dd>Line, rectangle, ellipse (hold Shift to constrain, F toggles filled)</dd>
+      <dt>D</dt><dd>Dither brush — checkerboard of A and B colours</dd>
+      <dt>I / M / H</dt><dd>Colour picker, move pixels, pan</dd>
+      <dt>V / Shift+V</dt><dd>Mirror left↔right / top↕bottom</dd>
+      <dt>[ ]</dt><dd>Brush size</dd>
+      <dt>X</dt><dd>Swap A and B colours</dd>
+      <dt>Ctrl+Z / Ctrl+Shift+Z</dt><dd>Undo / redo (or the B and A buttons)</dd>
+      <dt>+ / − / 0</dt><dd>Zoom in, out, fit. Mouse wheel and pinch also work.</dd>
+      <dt>Space + drag</dt><dd>Pan. Two fingers on touch screens.</dd>
+      <dt>, / .</dt><dd>Previous / next frame</dd>
+      <dt>P</dt><dd>Play / pause</dd>
+      <dt>K / O</dt><dd>Grid / onion skin</dd>
+      <dt>Right-click</dt><dd>Paint with the B colour</dd>
+    </dl>
+    <h3>Saving, explained</h3>
+    <p>Every change rewrites the page address (the bit after <code>#art=</code>). It holds your palette, layers, frames and title, run-length-encoded and base64url'd. Bookmark it, paste it in a chat, put it on a sticky note (a big sticky note). <em>My saves</em> keeps local copies with thumbnails in your browser's IndexedDB.</p>
+    <h3>Tips</h3>
+    <ul>
+      <li>Palette swap mode keeps colour numbers when you change palette, so you can instantly recolour a whole animation.</li>
+      <li>Onion skin shows the previous frame in red-ish ghosting and the next one fainter.</li>
+      <li>Long links can get truncated by some chat apps. If yours is over ~8 KB, also export a project file.</li>
+      <li>Rumour has it the console responds to a certain famous up-up-down-down sequence.</li>
+    </ul>
+    <p class="credit">Designed &amp; built by <strong>Kumar Nikhil</strong> ·
+      <a href="https://kumarnikhildeveloperaccount.github.io/" target="_blank" rel="noopener">Portfolio</a> ·
+      <a href="https://www.linkedin.com/in/kumar-nikhil-1000a9192/" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="mailto:nkashyapnikhilnk@gmail.com">Email</a> ·
+      <a href="https://kumarnikhildeveloperaccount.github.io/" target="_blank" rel="noopener">More projects by Kumar Nikhil →</a></p>
+    <p class="grat">With gratitude to God — Om Namah Paarvati Pateh, Har Har Mahadev. May God bless you and everyone.</p>
+    <div class="dlg-actions"><button type="button" class="nbtn accent" id="aboutClose">Got it</button></div>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script src="js/core.js"></script>
+<script src="js/doc.js"></script>
+<script src="js/codec.js"></script>
+<script src="js/gif.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/view.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

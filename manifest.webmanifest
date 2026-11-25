@@ -1,0 +1,13 @@
+{
+  "name": "PixelPress — pocket pixel-art studio",
+  "short_name": "PixelPress",
+  "description": "Draw and animate pixel art in a retro CRT handheld. Your share link is the save file.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#140d26",
+  "theme_color": "#2a1d4d",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
